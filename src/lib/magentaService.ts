@@ -32,20 +32,34 @@ class MagentaService {
 
   /**
    * Generates a stable Trio sequence.
+   * Calibrated temperature to balance creativity and musical structure.
    */
-  async generateTrio(mood: string): Promise<mm.INoteSequence | null> {
+  async generateTrio(profileId: string): Promise<mm.INoteSequence | null> {
     if (!this.musicVae || !this.isInitialized) {
       console.warn('AI Brain not ready.');
       return null;
     }
 
     try {
-      const temperature = mood === 'battle' ? 1.2 : 0.9;
-      // Fixed 16 steps (1 bar) for the current grid
-      const results = await this.musicVae.sample(1, temperature, {}, 4, 120);
+      // Optimized temperature (0.9 - 1.2) - Higher for battle, lower for others to reduce "messiness"
+      const temperature = profileId === 'battle' ? 1.2 : 0.95;
+      
+      // Sample multiple times (2x) and pick the one with better melodic density
+      const results = await this.musicVae.sample(2, temperature, {}, 4, 120);
       
       if (results && results.length > 0) {
-        return results[0];
+        let bestSeq = results[0];
+        let maxLeadNotes = 0;
+
+        results.forEach(seq => {
+          const leadCount = seq.notes?.filter(n => !n.isDrum && n.pitch !== null && !!n.pitch && n.pitch >= 60).length || 0;
+          if (leadCount > maxLeadNotes) {
+            maxLeadNotes = leadCount;
+            bestSeq = seq;
+          }
+        });
+
+        return bestSeq;
       }
     } catch (error) {
       console.error('AI Generation Failed:', error);

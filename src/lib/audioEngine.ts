@@ -43,8 +43,8 @@ class AudioEngine {
       
       // 2. Initialize Synths and connect to Effects Chain
       this.leadSynth = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'pulse', width: 0.25 },
-        envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 0.1 }
+        oscillator: { type: 'pulse', width: 0.5 },
+        envelope: { attack: 0.005, decay: 0.1, sustain: 0.4, release: 0.15 }
       }).connect(this.masterBitCrusher);
 
       this.chordSynth = new Tone.PolySynth(Tone.Synth, {

@@ -1,7 +1,7 @@
 export interface SavedPattern {
   tracks: any[];
   bpm: number;
-  mood: string;
+  profile: string;
   timestamp: number;
 }
 
@@ -11,11 +11,11 @@ export class StorageService {
   /**
    * Saves the current sequence state to localStorage.
    */
-  public static savePattern(tracks: any[], bpm: number, mood: string) {
+  public static savePattern(tracks: any[], bpm: number, profile: string) {
     const data: SavedPattern = {
       tracks,
       bpm,
-      mood,
+      profile,
       timestamp: Date.now()
     };
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));

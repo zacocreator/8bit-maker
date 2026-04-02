@@ -1,186 +1,220 @@
 /**
- * MusicHelper: AIの生成した音を音楽的な型（コード進行・リズム）に補正するエンジン
+ * MusicHelper: AIの生成した音を音楽的に補正するエンジン (Musical Profile Edition)
  */
 
-export interface CompositionStyle {
+export type ScaleType = 'major' | 'minor' | 'dorian' | 'phrygian' | 'lydian' | 'mixolydian' | 'aeolian' | 'locrian';
+
+export interface MusicalProfile {
   id: string;
   name: string;
   description: string;
   color: string;
   icon: string;
-  chords: string[]; // 4小節分のコード名
-  rhythm: 'straight' | 'syncopated' | 'march';
+  progressions: number[][];
+  bassPattern: 'walking' | 'octave' | 'syncopated' | 'steady';
+  drumStyle: 'standard' | 'aggressive' | 'minimal';
 }
 
-export const COMPOSITION_STYLES: CompositionStyle[] = [
-  {
+export const MUSICAL_PROFILES: Record<string, MusicalProfile> = {
+  adventure: {
     id: 'adventure',
     name: 'ADVENTURE',
-    description: '明るい王道進行 (I-V-vi-IV)',
+    description: '明るく前向きな冒険の始まり',
     color: '#b1d43d',
     icon: 'map',
-    chords: ['C', 'G', 'Am', 'F'],
-    rhythm: 'straight'
+    progressions: [[1, 5, 6, 4], [1, 4, 5, 1]], // I-V-vi-IV, I-IV-V-I
+    bassPattern: 'walking',
+    drumStyle: 'standard'
   },
-  {
+  battle: {
     id: 'battle',
     name: 'BATTLE',
-    description: '緊張感のある進行 (i-VI-iv-V)',
+    description: '緊張感のある激しい戦闘',
     color: '#ffb5a0',
     icon: 'swords',
-    chords: ['Am', 'F', 'Dm', 'E'],
-    rhythm: 'syncopated'
+    progressions: [[6, 4, 2, 5], [6, 7, 1, 6]], // vi-IV-ii-V, vi-VII-I-vi
+    bassPattern: 'octave',
+    drumStyle: 'aggressive'
   },
-  {
-    id: 'stadium',
-    name: 'STADIUM',
-    description: '壮大な進行 (IV-V-iii-vi)',
+  town: {
+    id: 'town',
+    name: 'TOWN',
+    description: '賑やかで平和な街の風景',
     color: '#9dd496',
-    icon: 'emoji_events',
-    chords: ['F', 'G', 'Em', 'Am'],
-    rhythm: 'march'
+    icon: 'home',
+    progressions: [[1, 6, 4, 5], [2, 5, 1, 6]], // I-vi-IV-V, ii-V-I-vi
+    bassPattern: 'syncopated',
+    drumStyle: 'standard'
   },
-  {
-    id: 'mystery',
-    name: 'MYSTERY',
-    description: '半音階の不気味な進行',
+  dungeon: {
+    id: 'dungeon',
+    name: 'DUNGEON',
+    description: '不気味で何かが潜む洞窟',
     color: '#a0a0ff',
     icon: 'visibility',
-    chords: ['Am', 'Bb', 'Am', 'Bb'],
-    rhythm: 'syncopated'
+    progressions: [[1, 2, 1, 2], [6, 3, 6, 3]], // 半音や減音傾向
+    bassPattern: 'steady',
+    drumStyle: 'minimal'
   }
-];
-
-// コード名から構成音（MIDI番号のオフセット）を取得
-const CHORD_MAP: Record<string, number[]> = {
-  'C': [0, 4, 7], 'G': [7, 11, 14], 'Am': [9, 12, 16], 'F': [5, 9, 12],
-  'Dm': [2, 5, 9], 'E': [4, 8, 11], 'Em': [4, 7, 11], 'Bb': [10, 14, 17]
 };
 
-// メジャースケールのオフセット (C Major)
-const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
+export const SCALES: Record<ScaleType, number[]> = {
+  major: [0, 2, 4, 5, 7, 9, 11],
+  minor: [0, 2, 3, 5, 7, 8, 10],
+  dorian: [0, 2, 3, 5, 7, 9, 10],
+  phrygian: [0, 1, 3, 5, 7, 8, 10],
+  lydian: [0, 2, 4, 6, 7, 9, 11],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  aeolian: [0, 2, 3, 5, 7, 8, 10],
+  locrian: [0, 1, 3, 5, 6, 8, 10],
+};
+
+const NOTE_TO_OFFSET: Record<string, number> = {
+  'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+};
 
 export class MusicHelper {
-  /**
-   * AIが生成したノートを、選択されたスタイル（コード進行・リズム）に適合させる
-   * 厳格モード: 拍の頭をコード音に固定し、1小節目と3小節目に反復を持たせる
-   */
-  static applyStyle(rawNotes: any[], styleId: string): any[] {
-    const style = COMPOSITION_STYLES.find(s => s.id === styleId) || COMPOSITION_STYLES[0];
-    const processedNotes: any[] = [];
-    
-    // 1小節目（0-15ステップ）のメロディを記憶してリフレインを作る
-    const bar1Melody: Record<number, number> = {};
-    const bar1Bass: Record<number, number> = {};
+  static getChordNotes(rootOffset: number, scaleType: ScaleType, degree: number): number[] {
+    const scale = SCALES[scaleType] || SCALES.major;
+    const rootIdx = (degree - 1) % 7;
+    const chordSteps = [0, 2, 4];
+    return chordSteps.map(step => {
+      const idx = (rootIdx + step) % 7;
+      let offset = scale[idx];
+      if (idx < rootIdx) offset += 12;
+      return (rootOffset + offset) % 12;
+    });
+  }
 
-    // 1. まず1小節目と2小節目を処理し、1小節目のパターンを記憶
+  /**
+   * AIの生成したノートを Musical Profile に基づいて補正する
+   */
+  static applyStyle(rawNotes: any[], profileId: string, keyRoot: string, scaleType: ScaleType): any[] {
+    const profile = MUSICAL_PROFILES[profileId] || MUSICAL_PROFILES.adventure;
+    const rootOffset = NOTE_TO_OFFSET[keyRoot] || 0;
+    const scale = SCALES[scaleType] || SCALES.major;
+    const fullScale = scale.map(s => (s + rootOffset) % 12);
+    
+    // コード進行の決定（今回はシンプルにランダム選定したものを全小節分用意）
+    const progression = profile.progressions[Math.floor(Math.random() * profile.progressions.length)];
+    
+    const processedNotes: any[] = [];
+    const bar1Patterns: Record<string, Record<number, number>> = { lead: {}, bass: {} };
+
+    // 処理中に直前のリードピッチを保持（輪郭保存のため）
+    let lastLeadPitch = -1;
+
     rawNotes.forEach(note => {
       const step = note.quantizedStartStep || 0;
       if (step >= 64) return;
 
       const barIdx = Math.floor(step / 16);
-      const currentChord = style.chords[barIdx % 4];
-      const chordOffsets = CHORD_MAP[currentChord] || [0, 4, 7];
+      const degree = progression[barIdx % 4];
+      const chordOffsets = this.getChordNotes(rootOffset, scaleType, degree);
       
       let newPitch = note.pitch;
 
       if (note.isDrum) {
-        // ドラム: 厳格なスケルトン
-        if (step % 8 === 0) newPitch = 36; // Kick
-        else if (step % 8 === 4) newPitch = 38; // Snare
+        // --- DRUM: Intent Preservation ---
+        // AIのリズムを活かしつつ、強拍にアクセントを足す
+        const isStrongBeat = step % 8 === 0;
+        const isBackBeat = step % 8 === 4;
+        
+        if (isStrongBeat) newPitch = 36; // Kick always prioritized
+        else if (isBackBeat) newPitch = 38; // Snare always prioritized
+        else {
+          // AIが元々鳴らしていた音を 8-bit パーカッションにマップ
+          if (note.pitch === 36 || note.pitch === 35) newPitch = 36;
+          else if (note.pitch === 38 || note.pitch === 40) newPitch = 38;
+          else newPitch = 42; // Closed Hat / Noise
+        }
       } else {
         const isLead = note.pitch >= 60;
-        const isOnBeat = step % 4 === 0;
-        const isOnBarHead = step % 16 === 0;
+        const subStep = step % 16;
+        const isOnBeat = subStep % 4 === 0;
 
         if (!isLead) {
-          // --- BASS ---
-          if (isOnBarHead || isOnBeat) {
-            // 拍の頭は100%コードのルート音
-            const oct = Math.floor(note.pitch / 12);
-            newPitch = oct * 12 + chordOffsets[0];
-          } else {
-            // それ以外も厳格にコード音に寄せる
-            newPitch = this.snapToChord(note.pitch, chordOffsets, 1.0);
+          // --- BASS: Pattern Logic ---
+          const oct = Math.floor(note.pitch / 12);
+          const rootNote = oct * 12 + chordOffsets[0];
+
+          switch (profile.bassPattern) {
+            case 'octave':
+              // Battleなど：オクターブやルート-5度の激しい動き
+              newPitch = (subStep % 8 < 4) ? rootNote : (rootNote + 12);
+              break;
+            case 'walking':
+              // Adventureなど：安定した動き
+              if (isOnBeat) newPitch = rootNote;
+              else newPitch = this.snapToNotes(note.pitch, chordOffsets, 1.0);
+              break;
+            case 'syncopated':
+              // Townなど：リズムに遊び
+              if (subStep % 8 === 0 || subStep % 8 === 3 || subStep % 8 === 6) {
+                newPitch = rootNote;
+              } else {
+                newPitch = this.snapToNotes(note.pitch, chordOffsets, 0.8);
+              }
+              break;
+            default:
+              newPitch = rootNote;
           }
-          if (barIdx === 0) bar1Bass[step] = newPitch;
+          if (barIdx === 0) bar1Patterns.bass[step] = newPitch;
         } else {
-          // --- LEAD ---
+          // --- LEAD: Contour Preservation ---
           if (isOnBeat) {
-            // 強拍は100%コード音
-            newPitch = this.snapToChord(note.pitch, chordOffsets, 1.0);
+            // 強拍はコード音
+            newPitch = this.snapToNotes(note.pitch, chordOffsets, 1.0);
           } else {
-            // 弱拍も高い確率でコード音、最低でもスケール音
-            newPitch = this.snapToScale(this.snapToChord(note.pitch, chordOffsets, 0.8));
+            // 弱拍は「AIの動き」を重視
+            // 前の音より高いか低いかを維持しつつ、スケール音にスナップ
+            const targetPitch = lastLeadPitch !== -1 
+              ? (note.pitch > lastLeadPitch ? Math.max(newPitch, lastLeadPitch + 1) : Math.min(newPitch, lastLeadPitch - 1))
+              : note.pitch;
+            
+            newPitch = this.snapToNotes(targetPitch, fullScale, 1.0);
           }
-          if (barIdx === 0) bar1Melody[step] = newPitch;
+          lastLeadPitch = newPitch;
+          if (barIdx === 0) bar1Patterns.lead[step] = newPitch;
+
+          // 終止形 (Cadence): 最後のステップをルートに寄せる
+          if (step === 63) {
+            newPitch = Math.floor(newPitch / 12) * 12 + rootOffset;
+          }
         }
       }
 
-      // 3小節目（リフレイン）の場合は、1小節目のパターンを優先（トランスポーズ付き）
+      // 3小節目リフレイン
       if (!note.isDrum && barIdx === 2) {
         const relativeStep = step % 16;
-        if (note.pitch >= 60 && bar1Melody[relativeStep] !== undefined) {
-          // 1小節目のメロディを現在のコードに移植
-          newPitch = this.snapToChord(bar1Melody[relativeStep], chordOffsets, 1.0);
-        } else if (note.pitch < 60 && bar1Bass[relativeStep] !== undefined) {
-          // 1小節目のベースを現在のコードに移植
-          newPitch = this.snapToChord(bar1Bass[relativeStep], chordOffsets, 1.0);
+        const type = note.pitch >= 60 ? 'lead' : 'bass';
+        if (bar1Patterns[type][relativeStep] !== undefined) {
+          const originalPitch = bar1Patterns[type][relativeStep];
+          const oct = Math.floor(note.pitch / 12);
+          // 今のコードに合わせてピッチをスライド
+          newPitch = this.snapToNotes(oct * 12 + (originalPitch % 12), chordOffsets, 0.9);
         }
       }
-
+      
       processedNotes.push({ ...note, pitch: newPitch });
     });
 
     return processedNotes;
   }
 
-  /**
-   * 指定されたピッチを最も近いコード音にスナップさせる
-   * @param probability スナップさせる確率 (0.0 - 1.0)
-   */
-  private static snapToChord(pitch: number, offsets: number[], probability: number = 1.0): number {
+  private static snapToNotes(pitch: number, allowedOffsets: number[], probability: number): number {
     if (Math.random() > probability) return pitch;
-
     const oct = Math.floor(pitch / 12);
     const noteInOct = pitch % 12;
-    
-    let closest = offsets[0];
+    let closest = allowedOffsets[0];
     let minDiff = 12;
-    
-    offsets.forEach(off => {
-      const offInOct = off % 12;
-      const diff = Math.min(Math.abs(offInOct - noteInOct), 12 - Math.abs(offInOct - noteInOct));
+    allowedOffsets.forEach(off => {
+      const diff = Math.min(Math.abs(off - noteInOct), 12 - Math.abs(off - noteInOct));
       if (diff < minDiff) {
         minDiff = diff;
-        closest = offInOct;
+        closest = off;
       }
     });
-
-    return oct * 12 + closest;
-  }
-
-  /**
-   * ピッチをスケール内の音にスナップさせる
-   */
-  private static snapToScale(pitch: number): number {
-    const oct = Math.floor(pitch / 12);
-    const noteInOct = pitch % 12;
-    
-    if (MAJOR_SCALE.includes(noteInOct)) return pitch;
-
-    // 最も近いスケール音を探す
-    let closest = MAJOR_SCALE[0];
-    let minDiff = 12;
-    
-    MAJOR_SCALE.forEach(s => {
-      const diff = Math.min(Math.abs(s - noteInOct), 12 - Math.abs(s - noteInOct));
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = s;
-      }
-    });
-
     return oct * 12 + closest;
   }
 }

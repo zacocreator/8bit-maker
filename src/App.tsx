@@ -14,12 +14,13 @@ import * as Tone from 'tone';
 const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [activeMood, setActiveMood] = useState('meadow');
+  const [activeProfile, setActiveProfile] = useState('adventure');
   const [bpm, setBpm] = useState(120);
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [tracks, setTracks] = useState<any[]>([]);
-  const [activeStyle, setActiveStyle] = useState('adventure');
+  const [activeKey, setActiveKey] = useState('C');
+  const [activeScaleType, setActiveScaleType] = useState<any>('major');
   const [isModelsReady, setIsModelsReady] = useState(false);
 
   // Initial Load
@@ -42,7 +43,7 @@ const App: React.FC = () => {
       if (saved && Array.isArray(saved.tracks)) {
         setTracks(saved.tracks);
         setBpm(saved.bpm || 120);
-        setActiveMood(saved.mood || 'meadow');
+        setActiveProfile(saved.profile || 'adventure');
         console.log('Restored pattern from localStorage');
       } else {
         throw new Error('No valid saved pattern found');
@@ -118,10 +119,10 @@ const App: React.FC = () => {
     const interval = setInterval(() => setProgress(p => (p >= 90 ? 90 : p + 10)), 150);
 
     try {
-      const result = await magentaService.generateTrio(activeMood); 
+      const result = await magentaService.generateTrio(activeProfile); 
       if (result && result.notes) {
         // --- APPLY MUSICAL STRUCTURE FILTER ---
-        const processedNotes = MusicHelper.applyStyle(result.notes, activeStyle);
+        const processedNotes = MusicHelper.applyStyle(result.notes, activeProfile, activeKey, activeScaleType);
         
         setTracks(prev => prev.map(t => {
           const quantized: Record<number, number[]> = {};
@@ -168,7 +169,7 @@ const App: React.FC = () => {
   };
 
   const handleSave = () => {
-    StorageService.savePattern(tracks, bpm, activeMood);
+    StorageService.savePattern(tracks, bpm, activeProfile);
     alert('パターンを保存しました！');
   };
 
@@ -203,14 +204,16 @@ const App: React.FC = () => {
       <main className="ml-72 mt-12 mb-16 h-[calc(100vh-7rem)] overflow-y-auto p-6 bg-surface dither-bg">
         <div className="max-w-6xl mx-auto space-y-6">
           <AIGeneratorCore 
-            activeMood={activeMood}
-            setActiveMood={setActiveMood}
+            activeProfile={activeProfile}
+            setActiveProfile={setActiveProfile}
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
             progress={progress}
             isReady={isModelsReady}
-            activeStyle={activeStyle}
-            setActiveStyle={setActiveStyle}
+            activeKey={activeKey}
+            setActiveKey={setActiveKey}
+            activeScaleType={activeScaleType}
+            setActiveScaleType={setActiveScaleType}
           />
           
           <SequencerMatrix 

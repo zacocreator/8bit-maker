@@ -181,7 +181,7 @@ const App: React.FC = () => {
       {/* 1. Header with Visualizer */}
       <header className="fixed top-0 left-0 w-full z-50 grid grid-cols-[1fr_300px_1fr] items-center px-4 h-12 bg-[#05151d] border-b-2 border-[#021018] font-['Space_Grotesk'] uppercase tracking-tighter text-sm">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-black text-[#b1d43d] tracking-widest leading-none">POKÉMON 8-BIT COMPOSER</h1>
+          <h1 className="text-xl font-black text-[#b1d43d] tracking-widest leading-none">8-BIT MUSIC COMPOSER</h1>
         </div>
         
         <div className="px-4 py-1">

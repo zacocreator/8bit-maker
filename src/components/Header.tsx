@@ -16,7 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ loadError, isGenerating }) => {
          </div>
          <div className="flex flex-col">
             <span className="text-sm font-display font-bold tracking-widest text-[#D4E5F0] uppercase">
-              POKÉMON 8-BIT COMPOSER
+              8-BIT COMPOSER
             </span>
             <span className="text-[8px] font-pixel text-outline uppercase mt-0.5">
                STITCH_CORE // DAW_INSTRUMENT_v2.0

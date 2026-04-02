@@ -1,4 +1,4 @@
-# 8-Bit Pokémon Music Station - 技術仕様・要件定義書 (Technical Specification)
+# 8-Bit Music Game Station - 技術仕様・要件定義書 (Technical Specification)
 
 このドキュメントは、8ビット音楽制作ワークステーションの機能、技術構成、および 64ステップ（4小節）拡張を含む重要な修正についてまとめたものです。
 

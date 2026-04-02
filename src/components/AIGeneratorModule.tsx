@@ -48,7 +48,7 @@ export const AIGeneratorModule: React.FC<AIGeneratorModuleProps> = ({ isGenerati
       </div>
 
       <p className="text-[9px] font-pixel text-outline-variant text-center leading-tight">
-        STITCH_SYNTH_PROTOCOL ENABLED // CONNECTING TO POKÉMON_LATENT_SPACE
+        STITCH_SYNTH_PROTOCOL ENABLED // CONNECTING TO AI_LATENT_SPACE
       </p>
     </div>
   );

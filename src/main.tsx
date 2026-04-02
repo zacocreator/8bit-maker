@@ -20,7 +20,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 
-console.log('--- POKÉMON 8-BIT COMPOSER INITIALIZING ---');
+console.log('--- 8-BIT MUSIC COMPOSER INITIALIZING ---');
 
 const rootElement = document.getElementById('root');
 if (rootElement) {

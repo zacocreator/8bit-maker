@@ -57,7 +57,7 @@ export const AIGeneratorCore: React.FC<AIGeneratorCoreProps> = ({
             </div>
             
             <span className="font-headline font-black text-xl text-on-surface leading-none uppercase">
-              {!isReady ? 'LOADING AI BRAIN...' : (isGenerating ? `ANALYZING... ${progress}%` : 'GENERATE POKÉMON BGM')}
+              {!isReady ? 'LOADING AI BRAIN...' : (isGenerating ? `ANALYZING... ${progress}%` : 'GENERATE 8-BIT BGM')}
             </span>
             <span className="text-[10px] text-outline mt-2 tracking-[0.2em] font-bold">ALGORITHM: RED_VERSION_0.9</span>
             

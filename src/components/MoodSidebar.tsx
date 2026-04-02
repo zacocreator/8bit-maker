@@ -8,7 +8,7 @@ interface MoodButtonProps {
   onClick: () => void;
 }
 
-const MoodButton: React.FC<MoodButtonProps> = ({ label, icon, color, isActive, onClick }) => (
+const MoodButton: React.FC<MoodButtonProps> = ({ label, icon, isActive, onClick }) => (
   <button 
     onClick={onClick}
     className={`w-16 h-16 btn-hardware flex flex-col items-center justify-center gap-1 ${isActive ? 'btn-salmon' : 'btn-secondary opacity-60'}`}

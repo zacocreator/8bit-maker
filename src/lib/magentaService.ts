@@ -6,7 +6,6 @@ import * as mm from '@magenta/music';
  */
 class MagentaService {
   private musicVae: mm.MusicVAE | null = null;
-  private melodyRnn: mm.MusicRNN | null = null;
   private isInitialized = false;
 
   constructor() {}
